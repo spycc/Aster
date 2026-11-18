@@ -393,7 +393,7 @@
         <div class="contact-block">
           <p class="eyebrow">Message</p>
           <h2>Contact Form</h2>
-          <p>The form opens in a window. Only the company name, contact person, and email are required. After you submit, the enquiry is sent to sales.eu@aster-cargo.com.</p>
+          <p>Only the company name, contact person, and email are required. After you submit, the enquiry is sent to sales.eu@aster-cargo.com.</p>
           <p><button class="btn" type="button" data-open-form>Open enquiry form</button></p>
         </div>
       </div>
@@ -699,10 +699,7 @@
         return { ok: response.ok, payload: payload };
       });
     }).then(function (result) {
-      var message = (result.payload && (result.payload.message || result.payload.success)) || "";
-      if (typeof message === "string" && /activat/i.test(message)) {
-        note.textContent = "The enquiry service still needs a one-time confirmation from sales.eu@aster-cargo.com. After that confirmation, submissions are delivered to that mailbox.";
-      } else if (result.ok && String(result.payload && result.payload.success).toLowerCase() !== "false") {
+      if (result.ok && String(result.payload && result.payload.success).toLowerCase() !== "false") {
         form.reset();
         syncDeadline();
         note.textContent = "Your enquiry has been sent to sales.eu@aster-cargo.com.";

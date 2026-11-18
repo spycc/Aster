@@ -393,7 +393,7 @@
         <div class="contact-block">
           <p class="eyebrow">Message</p>
           <h2>Contact Form</h2>
-          <p>The form opens in a window. Only the company name, contact person, and email are required. Submitting opens your email app with the enquiry addressed to sales.eu@aster-cargo.com. This page does not send mail by itself.</p>
+          <p>The form opens in a window. Only the company name, contact person, and email are required. After you submit, the enquiry is sent to sales.eu@aster-cargo.com.</p>
           <p><button class="btn" type="button" data-open-form>Open enquiry form</button></p>
         </div>
       </div>
@@ -406,9 +406,18 @@
     </div>
     <div class="band">
       <div class="wrap-narrow prose">
-        <p>When you send an enquiry, we use the name, company, email address, telephone number if you give one, and the cargo details you choose to share, so we can reply about freight and logistics.</p>
-        <p>That message is meant for sales.eu@aster-cargo.com. We do not ask for these details to build an advertising list, and we do not pass them on for someone else to sell.</p>
-        <p>On this demonstration page, nothing is stored on a server. Submitting the form opens the email application on your own device, and the message is sent only if you send it from there.</p>
+        <h2>Who we are</h2>
+        <p>Aster Cargo B.V. is an international logistics company in the Netherlands. This notice explains what happens to the details you send through the enquiry form on this website. Questions about it can be sent to sales.eu@aster-cargo.com.</p>
+        <h2>What the form collects</h2>
+        <p>The form asks for your company name, the contact person, and an email address. You may also give a telephone number, the services you need, cargo details, transport requirements, and any other note. Only the company name, contact person, and email address have to be filled in.</p>
+        <h2>Why we use it</h2>
+        <p>We use what you send so we can read the enquiry and reply about freight and logistics. If the conversation continues into a shipment or another piece of work, we use the same details for that work. We do not use them to build an advertising list, and we do not sell them.</p>
+        <h2>Who receives it</h2>
+        <p>When you submit the form, the details are delivered to sales.eu@aster-cargo.com. The delivery is handled by FormSubmit, a form service. This website does not keep its own copy of the form.</p>
+        <h2>How long we keep it</h2>
+        <p>We keep an enquiry for as long as we need it to answer you. If a shipment or a business relationship follows, we keep what we need for that work. You can ask us to delete an enquiry by emailing sales.eu@aster-cargo.com.</p>
+        <h2>What you can ask</h2>
+        <p>You can ask what we hold about you, ask for a correction, or ask us to delete it, at the same address. If you are in the European Economic Area and you are not satisfied with the reply, you can complain to the Dutch Data Protection Authority, Autoriteit Persoonsgegevens.</p>
       </div>
     </div>
   </section>
@@ -419,8 +428,9 @@
     </div>
     <div class="band">
       <div class="wrap-narrow prose">
-        <p>This website does not set its own cookies, and it does not use advertising or analytics trackers.</p>
-        <p>Your browser may still keep ordinary technical data it needs to show the page. If the site later stores anything on your device, this note will say so.</p>
+        <p>This website does not set cookies, and it does not use analytics or advertising tools.</p>
+        <p>A cookie is a small piece of information a site can ask your browser to store, so the site can recognise you later or count visits. We do not do that here. The pages show information and take an enquiry. Opening them does not place a cookie from Aster Cargo.</p>
+        <p>Your browser may still keep ordinary technical information it needs in order to display the page. That is not a cookie set by this website. If we add a cookie later, this page will name it, say what it is for, and say how you can refuse it.</p>
       </div>
     </div>
   </section>
@@ -465,7 +475,7 @@
     </div>
     <button class="close-x" type="button" data-close-form aria-label="Close">×</button>
   </div>
-  <form id="enquiry-form" action="mailto:sales.eu@aster-cargo.com" method="post" enctype="text/plain">
+  <form id="enquiry-form">
     <fieldset>
       <legend>01 Contact details</legend>
       <label for="company">Company name <span class="req">*</span></label>
@@ -546,7 +556,7 @@
     <p class="form-note">For local warehousing, or import and export customs enquiries, please email <a href="mailto:sales.eu@aster-cargo.com">sales.eu@aster-cargo.com</a> directly.</p>
     <div class="form-actions">
       <button class="btn" type="submit">Submit enquiry</button>
-      <p class="send-note">This opens your email app. The message is sent only after you send it there.</p>
+      <p class="send-note" id="send-note" role="status">After you submit, the enquiry is sent to sales.eu@aster-cargo.com.</p>
     </div>
   </form>
 </dialog>
@@ -632,11 +642,12 @@
 
   document.getElementById("enquiry-form").addEventListener("submit", function (event) {
     event.preventDefault();
+    var form = this;
     syncDeadline();
-    if (!this.reportValidity()) return;
-    var data = new FormData(this);
+    if (!form.reportValidity()) return;
+    var data = new FormData(form);
     var services = [];
-    this.querySelectorAll('input[name="service"]:checked').forEach(function (box) {
+    form.querySelectorAll('input[name="service"]:checked').forEach(function (box) {
       services.push(box.value);
     });
     var dims = [data.get("length"), data.get("width"), data.get("height")].map(function (v) {
@@ -667,8 +678,43 @@
     body += "\n05 ADDITIONAL INFORMATION\n";
     body += (data.get("notes") || "").trim() || "—";
     body += "\n";
-    var subject = "Logistics Service Enquiry — " + data.get("company");
-    window.location.href = "mailto:sales.eu@aster-cargo.com?subject=" + encodeURIComponent(subject) + "&body=" + encodeURIComponent(body);
+    var note = document.getElementById("send-note");
+    var button = form.querySelector('[type="submit"]');
+    button.disabled = true;
+    note.textContent = "Sending the enquiry…";
+    fetch("https://formsubmit.co/ajax/sales.eu@aster-cargo.com", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Accept": "application/json"
+      },
+      body: JSON.stringify({
+        _subject: "Logistics Service Enquiry — " + data.get("company"),
+        _template: "box",
+        _captcha: "false",
+        _replyto: data.get("email"),
+        message: body
+      })
+    }).then(function (response) {
+      return response.json().then(function (payload) {
+        return { ok: response.ok, payload: payload };
+      });
+    }).then(function (result) {
+      var message = (result.payload && (result.payload.message || result.payload.success)) || "";
+      if (typeof message === "string" && /activat/i.test(message)) {
+        note.textContent = "The enquiry service still needs a one-time confirmation from sales.eu@aster-cargo.com. After that confirmation, submissions are delivered to that mailbox.";
+      } else if (result.ok && String(result.payload && result.payload.success).toLowerCase() !== "false") {
+        form.reset();
+        syncDeadline();
+        note.textContent = "Your enquiry has been sent to sales.eu@aster-cargo.com.";
+      } else {
+        note.textContent = "The enquiry could not be sent. Please email sales.eu@aster-cargo.com directly.";
+      }
+    }).catch(function () {
+      note.textContent = "The enquiry could not be sent. Please email sales.eu@aster-cargo.com directly.";
+    }).then(function () {
+      button.disabled = false;
+    });
   });
 })();
 </script>
